@@ -357,6 +357,13 @@ class UStalkerKinematicsData* UStalkerResourcesManager::GetKinematics(const char
 	return nullptr;
 }
 
+class UStalkerParticleSystemComponent* UStalkerResourcesManager::GetParticles(const char* InName)
+{
+	UStalkerParticleSystemComponent* Result = NewObject<UStalkerParticleSystemComponent>();
+	return Result;
+}
+
+
 class UStalkerKinematicsComponent* UStalkerResourcesManager::CreateKinematics(class UStalkerKinematicsData* KinematicsData)
 {
 	UStalkerKinematicsComponent* Result =  NewObject< UStalkerKinematicsComponent>(this);
@@ -376,6 +383,16 @@ class UStalkerKinematicsComponent* UStalkerResourcesManager::CreateKinematics(co
 			Meshes.Add(Result);
 		}
 		return Result;
+	}
+	return nullptr;
+}
+
+class UStalkerParticleSystemComponent* UStalkerResourcesManager::CreateParticles(const char* InName)
+{
+	UStalkerParticleSystemComponent* ParticleComponent = GetParticles(InName);
+	if(ParticleComponent)
+	{
+		return ParticleComponent;
 	}
 	return nullptr;
 }
