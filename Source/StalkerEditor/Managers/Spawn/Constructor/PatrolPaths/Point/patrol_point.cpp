@@ -60,7 +60,7 @@ CPatrolPoint& CPatrolPoint::load_editor(const ILevelGraph* level_graph, const IG
 
 	if(m_level_vertex_id == 0xFFFFFFFF)
 	{
-		m_level_vertex_id = level_graph->vertex(m_level_vertex_id,m_position);
+		//m_level_vertex_id = level_graph->vertex(m_level_vertex_id,m_position);
 		//UE_LOG(LogXRayPatrolPatthConstructor,Warning,TEXT("No found level node in position [%f,%f,%f] for %s[%s]"), object.Position.X, object.Position.Y, object.Position.Z, *way.Name,*object.Name);
 	}
 	correct_position(level_graph, cross, game_graph);

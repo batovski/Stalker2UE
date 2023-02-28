@@ -13,12 +13,15 @@
 #include "Resources/Spawn/StalkerGameSpawn.h"
 #include "Resources/PhysicalMaterial/StalkerPhysicalMaterialsManager.h"
 #include "Kernel/Unreal/GameSettings/StalkerGameSettings.h"
+#include "HAL/FileManager.h"
 ///////////////////////////////////////////////////////////////////////////////////////////
 #include "Entities/Scene/SpawnObject/Properties/StalkerSpawnPropertiesTypes.h"
 #include "Entities/Scene/SpawnObject/Properties/StalkerSpawnPropertiesTypeCustomization.h"
 ///////////////////////////////////////////////////////////////////////////////////////////
+#include "UI/Commands/StalkerEditorCommands.h"
 THIRD_PARTY_INCLUDES_START
 #include "XrEngine/XRayEngineInterface.h"
+#include "Importer/XRayEngineFactory.h"
 THIRD_PARTY_INCLUDES_END
 
 UStalkerEditorManager* GStalkerEditorManager = nullptr;
@@ -36,12 +39,6 @@ void UStalkerEditorManager::Initialized()
 			SOCMaterials.Load();
 		}
 		GXRayEngineManager->PostReInitializedMulticastDelegate.AddUObject(this, &UStalkerEditorManager::OnReInitialized);
-
-		auto GInterchangeEnableDDSImportVar = IConsoleManager::Get().FindConsoleVariable(TEXT("Interchange.FeatureFlags.Import.DDS"));
-		if (GInterchangeEnableDDSImportVar)
-		{
-			GInterchangeEnableDDSImportVar->Set(false);
-		}
 
 		ScanSkeletons();
 		EditorCFrom = NewObject<UStalkerEditorCForm>(this);
@@ -71,8 +68,12 @@ void UStalkerEditorManager::Initialized()
 		FEditorDelegates::PreBeginPIE.AddUObject(this, &UStalkerEditorManager::OnPreBeginPIE);
 		FEditorDelegates::PostPIEStarted.AddUObject(this, &UStalkerEditorManager::OnPostPIEStarted);
 		FEditorDelegates::EndPIE.AddUObject(this, &UStalkerEditorManager::OnEndPIE);
-	}
 
+		GStalkerEditorManager->UICommandList->MapAction(StalkerEditorCommands::Get().ReloadConfigsAndScript, FExecuteAction::CreateUObject(this, &UStalkerEditorManager::ReloadConfigs));
+		GStalkerEditorManager->UICommandList->MapAction(StalkerEditorCommands::Get().ImportUITextures, FExecuteAction::CreateUObject(this, &UStalkerEditorManager::ImportUITextures));
+		GStalkerEditorManager->UICommandList->MapAction(StalkerEditorCommands::Get().ImportMeshes, FExecuteAction::CreateUObject(this, &UStalkerEditorManager::ImportMeshes));
+		GStalkerEditorManager->UICommandList->MapAction(StalkerEditorCommands::Get().ImportPhysicalMaterials, FExecuteAction::CreateUObject(this, &UStalkerEditorManager::ImportPhysicalMaterials));
+	}
 	
 }
 
@@ -127,6 +128,75 @@ FString UStalkerEditorManager::GetGamePath()
 	default:
 		return TEXT("/Game/COP");
 	}
+}
+
+void UStalkerEditorManager::ReloadConfigs()
+{
+	if (!FApp::IsGame())
+	{
+		return;
+	}
+	SEFactoryManager->UnLoad();
+	delete pSettings;
+	string_path 			si_name;
+	FS.update_path(si_name, "$game_config$", "system.ltx");
+	pSettings = xr_new<CInifile>(si_name, TRUE);// FALSE,TRUE,TRUE);
+	delete pGameIni;
+	string_path					fname;
+	FS.update_path(fname, "$game_config$", "game.ltx");
+	pGameIni = xr_new<CInifile>(fname, TRUE);
+	SEFactoryManager->Load();
+}
+
+void UStalkerEditorManager::ImportUITextures()
+{
+	auto ImportFromPath = [](const char*PathName)
+	{
+		string_path	GameTexturePath;
+		FS.update_path(GameTexturePath, "$game_textures$", PathName);
+		TArray<FString> Files;
+		FString TexturePath = GameTexturePath;
+		TexturePath.ReplaceCharInline(TEXT('\\'),TEXT('/'));
+		IFileManager::Get().FindFilesRecursive(Files,*TexturePath,TEXT("*.dds"),true,false);
+	
+		XRayEngineFactory EngineFactory(nullptr, RF_Standalone | RF_Public);
+		for(FString FileName:Files)
+		{
+			FileName = FPaths::GetPath(FileName) / FPaths::GetBaseFilename(FileName);
+			if(FCString::Strstr((*FileName) + TexturePath.Len() - FCStringAnsi::Strlen(PathName),TEXT("ui_font"))!=nullptr)
+				continue;
+			EngineFactory.ImportTexture((*FileName)+ TexturePath.Len() - FCStringAnsi::Strlen(PathName),true);
+		}
+	};
+	ImportFromPath("ui");
+	ImportFromPath("map");
+
+}
+
+void UStalkerEditorManager::ImportMeshes()
+{
+	string_path	GameMeshesPath;
+	FS.update_path(GameMeshesPath, "$game_meshes$","");
+	TArray<FString> Files;
+	FString MeshesPath = GameMeshesPath;
+	MeshesPath.ReplaceCharInline(TEXT('\\'),TEXT('/'));
+	IFileManager::Get().FindFilesRecursive(Files,*MeshesPath,TEXT("*.ogf"),true,false);
+	for(FString FileName:Files)
+	{
+		FString FileNameWithoutExtension = FPaths::GetPath(FileName) / FPaths::GetBaseFilename(FileName);
+		FString UnrealPath = GStalkerEditorManager->GetGamePath() / TEXT("Meshes");
+		UnrealPath = UnrealPath/ (*FileNameWithoutExtension + MeshesPath.Len());
+		XRayEngineFactory EngineFactory(CreatePackage(*FPaths::GetPath(UnrealPath)), RF_Standalone | RF_Public);
+		EngineFactory.ImportOGF(FileName);
+	}
+}
+
+void UStalkerEditorManager::ImportPhysicalMaterials()
+{
+	string_path	GameMaterialFilePath;
+	FS.update_path(GameMaterialFilePath, "$game_data$", "gamemtl.xr");
+	XRayEngineFactory EngineFactory(nullptr, RF_Standalone | RF_Public);
+	EngineFactory.ImportPhysicsMaterials(ANSI_TO_TCHAR(GameMaterialFilePath));
 }
 
 void UStalkerEditorManager::OnPreBeginPIE(const bool)

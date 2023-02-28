@@ -9,6 +9,7 @@
 #include "IPlacementModeModule.h"
 #include "ComponentTypeRegistry.h"
 #include "Managers/SEFactory/StalkerSEFactoryManager.h"
+#include "MessageLogModule.h"
 
 #define LOCTEXT_NAMESPACE "XRayImporterModule"
 DEFINE_LOG_CATEGORY(LogXRayImporter);
@@ -41,6 +42,7 @@ void FStalkerEditorModule::StartupModule()
 		ToolBarMenu.Initialize();
 		BuildMenu.Initialize();
 		PlayMenu.Initialize();
+		ToolsMenu.Initialize();
 
 		FStalkerEditorStyle::Initialize();
 		FStalkerEditorStyle::ReloadTextures();
@@ -67,6 +69,11 @@ void FStalkerEditorModule::ShutdownModule()
 {
 	if (GIsEditor)
 	{
+		if ( FModuleManager::Get().IsModuleLoaded("MessageLog") )
+		{
+			FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
+			MessageLogModule.UnregisterLogListing("StalkerEditor");
+		}
 		FEditorModeRegistry::Get().UnregisterMode(FStalkerAIMapEditMode::EM_AIMap);
 		FEditorModeRegistry::Get().UnregisterMode(FStalkerWayObjectEditMode::EM_WayObject);
 		FStalkerEditorStyle::Shutdown();
@@ -76,6 +83,7 @@ void FStalkerEditorModule::ShutdownModule()
 		ToolBarMenu.Destroy();
 		MainMenu.Destroy();
 		BuildMenu.Destroy();
+		ToolsMenu.Destroy();
 		StalkerEditorCommands::Unregister();
 	}
 }
@@ -84,6 +92,13 @@ void FStalkerEditorModule::OnPostEngineInit()
 {
 	GStalkerEditorManager->SEFactoryManager->Initialized();
 	FComponentTypeRegistry::Get().Invalidate();
+	FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
+	MessageLogModule.RegisterLogListing( "StalkerEditor",FText::FromString(TEXT("StalkerEditor Errors")));
+	auto GInterchangeEnableDDSImportVar = IConsoleManager::Get().FindConsoleVariable(TEXT("Interchange.FeatureFlags.Import.DDS"));
+	if (GInterchangeEnableDDSImportVar)
+	{
+		GInterchangeEnableDDSImportVar->Set(false);
+	}
 }
 
 void FStalkerEditorModule::OnPreExit()

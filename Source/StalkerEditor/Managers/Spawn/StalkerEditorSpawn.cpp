@@ -31,6 +31,10 @@ void UStalkerEditorSpawn::Destroy()
 
 class UStalkerLevelSpawn* UStalkerEditorSpawn::BuildLevelSpawnIfNeeded()
 {
+	if (FApp::IsGame())
+	{
+		return nullptr;
+	}
 	FWorldContext* WorldContext = GEngine->GetWorldContextFromGameViewport(GEngine->GameViewport);
 	if (!WorldContext)
 		return nullptr;
@@ -47,7 +51,7 @@ class UStalkerLevelSpawn* UStalkerEditorSpawn::BuildLevelSpawnIfNeeded()
 	UStalkerLevelSpawn* Spawn = StalkerWorldSettings->GetSpawn();
 	UStalkerAIMap* AIMap = StalkerWorldSettings->GetOrCreateAIMap();
 	check(AIMap);
-	if (!Spawn || Spawn->NeedRebuild || !Spawn->SpawnGuid.IsValid() || AIMap->AIMapGuid != Spawn->AIMapGuid)
+	if (!Spawn ||StalkerWorldSettings->NeedRebuildSpawn|| Spawn->NeedRebuild || !Spawn->SpawnGuid.IsValid() || AIMap->AIMapGuid != Spawn->AIMapGuid)
 	{
 		return BuildLevelSpawn();
 	}
@@ -60,6 +64,10 @@ class UStalkerLevelSpawn* UStalkerEditorSpawn::BuildLevelSpawnIfNeeded()
 
 class UStalkerLevelSpawn* UStalkerEditorSpawn::BuildLevelSpawn()
 {
+	if (FApp::IsGame())
+	{
+		return nullptr;
+	}
 	FWorldContext* WorldContext = GEngine->GetWorldContextFromGameViewport(GEngine->GameViewport);
 	if (!WorldContext)
 		return nullptr;
@@ -218,6 +226,8 @@ class UStalkerLevelSpawn* UStalkerEditorSpawn::BuildLevelSpawn()
 		}
 
 	}
+	StalkerWorldSettings->Modify();
+	StalkerWorldSettings->NeedRebuildSpawn = false;
 	Spawn->NeedRebuild = false;
 	Spawn->MarkPackageDirty();
 	UE_LOG(LogStalkerEditor, Log, TEXT("Build level spawn is complete!"));
@@ -226,8 +236,34 @@ class UStalkerLevelSpawn* UStalkerEditorSpawn::BuildLevelSpawn()
 
 bool UStalkerEditorSpawn::BuildGameSpawn(UStalkerLevelSpawn* OnlyIt, bool IfNeededRebuild, bool IgnoreIncludeInBuild)
 {
+	if (FApp::IsGame())
+	{
+		return true;
+	}
 	UStalkerGameSpawn* GameSpawn = GXRayEngineManager->GetResourcesManager()->GetOrCreateGameSpawn();
 	check(GameSpawn);
+	if (!ensure(GameSpawn->LevelsInfo.Num() == GameSpawn->GameGraph.header().level_count()))
+	{
+		GameSpawn->InvalidGameSpawn();
+	}
+	else if (GameSpawn->LevelsInfo.Num())
+	{
+		if (!ensure(FMemory::Memcmp(&GameSpawn->GameSpawnGuid, &GameSpawn->GameGraph.header().guid(), sizeof(FGuid)) == 0))
+		{
+			GameSpawn->InvalidGameSpawn();
+		}
+		else
+		{
+			for (int32 i = 0; i < GameSpawn->LevelsInfo.Num(); i++)
+			{
+				if (!ensure(FMemory::Memcmp(&GameSpawn->LevelsInfo[i].AIMapGuid,&GameSpawn->GameGraph.header().level(i).guid(),sizeof(FGuid)) == 0))
+				{
+					GameSpawn->InvalidGameSpawn();
+					break;
+				}
+			}
+		}
+	}
 	UE_LOG(LogXRayGameSpawnConstructor, Log, TEXT("Start build spawn"));
 	LevelSpawns.Empty();
 	const UStalkerGameSettings* SGSettings = GetDefault<UStalkerGameSettings>();
@@ -254,6 +290,7 @@ bool UStalkerEditorSpawn::BuildGameSpawn(UStalkerLevelSpawn* OnlyIt, bool IfNeed
 			GameSpawnLevelInfo.LeveID = OnlyIt->LevelID;
 			GameSpawnLevelInfo.Name = LevelName;
 			GameSpawnLevelInfo.Map = OnlyIt->Map;
+			GameSpawnLevelInfo.LevelSpawnGuid = OnlyIt->SpawnGuid;
 		}
 		LevelSpawns.Add(OnlyIt);
 	}
@@ -333,6 +370,14 @@ bool UStalkerEditorSpawn::BuildGameSpawn(UStalkerLevelSpawn* OnlyIt, bool IfNeed
 				{
 					NeedRebuild = true;
 				}
+				else if (GameSpawn->LevelsInfo[i].Name != NewLevelsInfo[i].Name)
+				{
+					NeedRebuild = true;
+				}
+				else if (GameSpawn->LevelsInfo[i].Map != NewLevelsInfo[i].Map)
+				{
+					NeedRebuild = true;
+				}
 			}
 			if (!NeedRebuild)
 			{
@@ -396,7 +441,7 @@ void UStalkerEditorSpawn::BuildGameGraph(UStalkerGameSpawn* GameSpawn)
 			IGameGraph::CVertex&Vertex = GameSpawn->GameGraph.Vertices.AddDefaulted_GetRef();
 			Vertex.tLocalPoint = InVertex.tLocalPoint;
 			Vertex.tGlobalPoint = InVertex.tGlobalPoint;
-			Vertex.tNeighbourCount = 0;// InVertex.tNeighbourCount;
+			Vertex.tNeighbourCount =  InVertex.tNeighbourCount;
 			Vertex.tNodeID = InVertex.tNodeID;
 			Vertex.tLevelID = LevelSpawn->LevelID;
 			Vertex.dwEdgeOffset = TempEdges.Num();
@@ -494,6 +539,10 @@ void UStalkerEditorSpawn::OnBuildLevelSpawn()
 
 void UStalkerEditorSpawn::OnBuildGameSpawn()
 {
+	if (FApp::IsGame())
+	{
+		return;
+	}
 	if (!BuildGameSpawn(nullptr,false,true))
 	{
 		FMessageDialog::Open(EAppMsgType::Type::Ok, EAppReturnType::Type::Ok, FText::FromString(TEXT("Failure build GameSpawn,see log!")));

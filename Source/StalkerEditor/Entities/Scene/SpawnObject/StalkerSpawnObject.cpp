@@ -379,6 +379,10 @@ void AStalkerSpawnObject::CreateEntity()
 	{
 		return;
 	}
+	if (GetWorld()->IsGameWorld())
+	{
+		return;
+	}
 	if (GStalkerEditorManager->SEFactoryManager->IsVoid())
 	{
 		return;
@@ -475,6 +479,49 @@ void AStalkerSpawnObject::SpawnRead()
 void AStalkerSpawnObject::Destroyed()
 {
 	Super::Destroyed();
+	if (!IsValid(GetWorld()) || GetWorld()->IsGameWorld())
+	{
+		return;
+	}
+	AStalkerWorldSettings* StalkerWorldSettings = Cast<AStalkerWorldSettings>(GetWorld()->GetWorldSettings());
+	if (IsValid(StalkerWorldSettings))
+	{
+		UStalkerLevelSpawn* Spawn = StalkerWorldSettings->GetSpawn();
+		if (IsValid(Spawn))
+		{
+			StalkerWorldSettings->Modify();
+			StalkerWorldSettings->NeedRebuildSpawn = true;
+			Spawn->NeedRebuild = true;
+			Spawn->Modify();
+		}
+	}
+}
+
+bool AStalkerSpawnObject::Modify(bool bAlwaysMarkDirty /*= true*/)
+{
+	bool bResult = Super::Modify(bAlwaysMarkDirty);
+	if (!IsValid(GetWorld()) || GetWorld()->IsGameWorld()||!bAlwaysMarkDirty)
+	{
+		return bResult;
+	}
+	AStalkerWorldSettings* StalkerWorldSettings = Cast<AStalkerWorldSettings>(GetWorld()->GetWorldSettings());
+	if (IsValid(StalkerWorldSettings))
+	{
+		UStalkerLevelSpawn* Spawn = StalkerWorldSettings->GetSpawn();
+		if (IsValid(Spawn))
+		{
+			StalkerWorldSettings->Modify();
+			StalkerWorldSettings->NeedRebuildSpawn = true;
+			Spawn->NeedRebuild = true;
+			Spawn->Modify();
+		}
+	}
+	return bResult;
+}
+
+void AStalkerSpawnObject::PostEditUndo()
+{
+	Super::PostEditUndo();
 	if (!IsValid(GetWorld()))
 	{
 		return;
@@ -485,30 +532,12 @@ void AStalkerSpawnObject::Destroyed()
 		UStalkerLevelSpawn* Spawn = StalkerWorldSettings->GetSpawn();
 		if (IsValid(Spawn))
 		{
+			StalkerWorldSettings->Modify();
+			StalkerWorldSettings->NeedRebuildSpawn = true;
 			Spawn->NeedRebuild = true;
 			Spawn->Modify();
 		}
 	}
-}
-
-bool AStalkerSpawnObject::Modify(bool bAlwaysMarkDirty /*= true*/)
-{
-	bool bResult = Super::Modify(bAlwaysMarkDirty);
-	if (!IsValid(GetWorld()))
-	{
-		return bResult;
-	}
-	AStalkerWorldSettings* StalkerWorldSettings = Cast<AStalkerWorldSettings>(GetWorld()->GetWorldSettings());
-	if (IsValid(StalkerWorldSettings))
-	{
-		UStalkerLevelSpawn* Spawn = StalkerWorldSettings->GetSpawn();
-		if (IsValid(Spawn))
-		{
-			Spawn->NeedRebuild = true;
-			Spawn->Modify();
-		}
-	}
-	return bResult;
 }
 
 void AStalkerSpawnObject::PostEditImport()
@@ -708,4 +737,13 @@ void AStalkerSpawnObject::CreateNCPData()
 
 	NCPData = NewObject<UStalkerSpawnProperties_ALifeTraderAbstract>(this, NAME_None, RF_Transactional | RF_TextExportTransient);
 	NCPData->SetEntity(XRayEntity);
+}
+
+void AStalkerSpawnObject::BeginPlay()
+{
+	Super::BeginPlay();
+	if (IsValid(GetWorld())||GetWorld()->IsGameWorld())
+	{
+		Destroy();
+	}
 }
