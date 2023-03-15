@@ -1,5 +1,6 @@
 #include "Resources/StalkerResourcesManager.h"
 #include "../Kernel/StalkerEngineManager.h"
+#include "../Entities/ParticleSystem/StalkerParticleSystemComponent.h"
 #include "../Entities/Kinematics/StalkerKinematicsComponent.h"
 #include "SkeletonMesh/StalkerKinematicsData.h"
 #include "../Entities/Levels/Light/StalkerLight.h"
@@ -377,6 +378,17 @@ class UStalkerKinematicsComponent* UStalkerResourcesManager::CreateKinematics(co
 			Meshes.Add(Result);
 		}
 		return Result;
+	}
+	return nullptr;
+}
+
+class UStalkerParticleSystemComponent* UStalkerResourcesManager::CreateParticles(const char* InName)
+{
+	//TO DO:: Particles Importer
+	UStalkerParticleSystemComponent* Particles = NewObject< UStalkerParticleSystemComponent>(this);
+	if (IsValid(Particles))
+	{
+		return Particles;
 	}
 	return nullptr;
 }
