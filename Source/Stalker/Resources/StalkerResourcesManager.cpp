@@ -359,6 +359,13 @@ class UStalkerKinematicsData* UStalkerResourcesManager::GetKinematics(const char
 	return KinematicsData;
 }
 
+class UStalkerParticleSystemComponent* UStalkerResourcesManager::GetParticles(const char* InName)
+{
+	UStalkerParticleSystemComponent* Result = NewObject<UStalkerParticleSystemComponent>();
+	return Result;
+}
+
+
 class UStalkerKinematicsComponent* UStalkerResourcesManager::CreateKinematics(class UStalkerKinematicsData* KinematicsData)
 {
 	UStalkerKinematicsComponent* Result =  NewObject< UStalkerKinematicsComponent>(this);

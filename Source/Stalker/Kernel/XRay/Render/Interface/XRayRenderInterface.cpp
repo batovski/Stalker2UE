@@ -4,6 +4,7 @@
 #include "../Resources/Visual/XRaySkeletonVisual.h"
 #include "../../../StalkerEngineManager.h"
 #include "Resources/StalkerResourcesManager.h"
+
 #include "Entities/Kinematics/StalkerKinematicsComponent.h"
 #include "Entities/ParticleSystem/StalkerParticleSystemComponent.h"
 #include "Entities/Levels/Light/StalkerLight.h"

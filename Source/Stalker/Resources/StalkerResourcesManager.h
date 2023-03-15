@@ -15,6 +15,7 @@ public:
 	class AStalkerLight*				CreateLight		();
 	void								Desotry			(class IRender_Light*Light);
 	class UStalkerKinematicsData*		GetKinematics	(const char* Name);
+	class UStalkerParticleSystemComponent* GetParticles(const char* InName);
 	class UStalkerKinematicsComponent*	CreateKinematics(const char*Name, bool NeedRefence = false);
 	class UStalkerKinematicsComponent*	CreateKinematics(class UStalkerKinematicsData* KinematicsData);
 	class UStalkerParticleSystemComponent* CreateParticles(const char* InName);
