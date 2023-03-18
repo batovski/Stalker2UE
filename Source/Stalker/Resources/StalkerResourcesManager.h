@@ -14,6 +14,7 @@ public:
 	void												CheckLeak					();
 	void												Reload						();
 	class AStalkerLight*								CreateLight					();
+	class UStalkerParticleSystemComponent*				CreateParticles(const char* InName);
 	void												Desotry						(class IRender_Light*Light);
 	class UStalkerKinematicsData*						GetKinematics				(const char* Name);
 	class UStalkerKinematicsComponent*					CreateKinematics			(const char*Name, bool NeedRefence = false);

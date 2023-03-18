@@ -377,10 +377,10 @@ class UStalkerKinematicsComponent* FStalkerResourcesManager::CreateKinematics(co
 	return nullptr;
 }
 
-class UStalkerParticleSystemComponent* UStalkerResourcesManager::CreateParticles(const char* InName)
+class UStalkerParticleSystemComponent* FStalkerResourcesManager::CreateParticles(const char* InName)
 {
 	//TO DO:: Particles Importer
-	UStalkerParticleSystemComponent* Particles = NewObject< UStalkerParticleSystemComponent>(this);
+	UStalkerParticleSystemComponent* Particles = NewObject< UStalkerParticleSystemComponent>();
 	if (IsValid(Particles))
 	{
 		return Particles;
