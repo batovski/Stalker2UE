@@ -12,8 +12,7 @@ public class Stalker : ModuleRules
 
         PublicIncludePaths.Add(ModuleDirectory);
 
-        PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore","UMG","XRayEngineModules", "Slate",  "SlateCore", "DeveloperSettings" });
-        PrivateDependencyModuleNames.AddRange(new string[] {  });
+        PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore","UMG","XRayEngineModules", "Slate",  "SlateCore", "DeveloperSettings", "Niagara" });
         if (Target.bBuildEditor == true)
         {
             PrivateDependencyModuleNames.AddRange(

@@ -6,6 +6,10 @@
 #include "Resources/StalkerResourcesManager.h"
 #include "Entities/Kinematics/StalkerKinematics.h"
 #include "Entities/Levels/Light/StalkerLight.h"
+#include "Entities/ParticleSystem/StalkerParticleSystemComponent.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraComponent.h"
+#include "Entities/Levels/Proxy/StalkerProxy.h"
 XRayRenderInterface GRenderInterface;
 
 XRayRenderInterface::XRayRenderInterface()
@@ -235,6 +239,27 @@ IRender_Glow* XRayRenderInterface::glow_create()
 
 IRenderVisual* XRayRenderInterface::model_CreateParticles(LPCSTR name)
 {
+	FActorSpawnParameters SpawnParameters = FActorSpawnParameters();
+	AActor* ParentActor = GWorld->SpawnActor<AStalkerProxy>(SpawnParameters);
+	ParentActor->SetActorLabel(name, true);
+
+	UNiagaraSystem* NS  = LoadObject<UNiagaraSystem>(nullptr, TEXT("/Game/Test/TestParticles.TestParticles"), nullptr, LOAD_NoWarn);
+
+	UNiagaraComponent* NiagaraComp = UNiagaraFunctionLibrary::SpawnSystemAttached(NS, ParentActor->GetRootComponent(), NAME_None, FVector(0.f), FRotator(0.f), EAttachLocation::Type::KeepRelativeOffset, true);
+
+	UStalkerParticleSystemComponent* Particles =  NewObject<UStalkerParticleSystemComponent>();
+	check(Particles);
+	if (Particles)
+	{
+		FAttachmentTransformRules AttachmentTransformRules(EAttachmentRule::KeepRelative, false);
+		Particles->Rename(nullptr, ParentActor);
+
+		Particles->AttachToComponent(ParentActor->GetRootComponent(), AttachmentTransformRules);
+		Particles->RegisterComponent();
+
+		Particles->Init(NiagaraComp);
+		return Particles;
+	}
 	return nullptr;
 }
 
@@ -270,7 +295,7 @@ void XRayRenderInterface::model_Delete(IRenderVisual*& V, BOOL bDiscard)
 		}
 		else
 		{
-			check(false);
+			//check(false);
 			//GXRaySkeletonMeshManager->Destroy(V->CastToRaySkeletonVisual());
 		}
 		V = nullptr;
