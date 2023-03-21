@@ -1,6 +1,9 @@
 #include "Resources/StalkerResourcesManager.h"
+
+#include "NiagaraFunctionLibrary.h"
 #include "../Kernel/StalkerEngineManager.h"
 #include "../Entities/Kinematics/StalkerKinematics.h"
+#include "../Entities/ParticleSystem/StalkerParticle.h"
 #include "SkeletonMesh/StalkerKinematicsData.h"
 #include "../Entities/Levels/Light/StalkerLight.h"
 #include "../Entities/Levels/Proxy/StalkerProxy.h"
@@ -378,6 +381,21 @@ class UStalkerKinematicsComponent* UStalkerResourcesManager::CreateKinematics(co
 		return Result;
 	}
 	return nullptr;
+}
+class AStalkerParticle* UStalkerResourcesManager::CreateParticle(const char* InName)
+{
+	FActorSpawnParameters SpawnParameters = FActorSpawnParameters();
+	AStalkerParticle* Particle = GWorld->SpawnActor<AStalkerParticle>(SpawnParameters);
+	if (!Particle) { return nullptr; }
+	Particle->SetActorLabel(InName, true);
+
+	//Import the correct particle asset:
+	UNiagaraSystem* NS = LoadObject<UNiagaraSystem>(nullptr, TEXT("/Game/Test/TestParticles.TestParticles"), nullptr, LOAD_NoWarn);
+	UNiagaraComponent* NiagaraComp = UNiagaraFunctionLibrary::SpawnSystemAttached(NS, Particle->GetRootComponent(), NAME_None, FVector(0.f), FRotator(0.f), EAttachLocation::Type::KeepRelativeOffset, true);
+	if(NiagaraComp)
+		Particle->Init(NiagaraComp);
+
+	return Particle;
 }
 
 

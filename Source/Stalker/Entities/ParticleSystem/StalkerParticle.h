@@ -3,22 +3,25 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "NiagaraComponent.h"
+#include "GameFramework/Actor.h"
 
 THIRD_PARTY_INCLUDES_START
 #include "XrRender/Public/ParticleCustom.h"
 THIRD_PARTY_INCLUDES_END
 
-#include "StalkerParticleSystemComponent.generated.h"
+#include "StalkerParticle.generated.h"
 
 
-UCLASS(BlueprintType)
-class STALKER_API UStalkerParticleSystemComponent : public UParticleSystemComponent, public IRenderVisual, public IParticleCustom
+UCLASS()
+class STALKER_API AStalkerParticle : public AActor, public IRenderVisual, public IParticleCustom
 {
 	GENERATED_BODY()
 
 public:	
 	// Sets default values for this component's properties
-	UStalkerParticleSystemComponent();
+	AStalkerParticle();
+
 	void								Init(UNiagaraComponent* NiagaraComponent);
 
 	//IRenderVisual
@@ -54,9 +57,16 @@ public:
 	void	SetHudMode(BOOL b) override;
 	BOOL	GetHudMode() override;
 
+protected:
+	// Called when the game starts or when spawned
+	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaTime) override;
+
 private:
 	vis_data									VisData;
 	shared_str									DataName;
+	UPROPERTY(EditAnywhere)
 	UNiagaraComponent*							Particles;
-		
+	UPROPERTY(EditAnywhere)
+	USceneComponent* Root;
 };
